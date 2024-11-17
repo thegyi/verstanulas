@@ -3,8 +3,10 @@
 #include <QApplication>
 #include <QFile>
 #include <QFileDialog>
+#include <QRandomGenerator>
 #include <QStringList>
 #include <QTextStream>
+#include <algorithm>
 #include <memory>
 #include <qapplication.h>
 #include <qfiledialog.h>
@@ -21,7 +23,7 @@ MainWindow::~MainWindow() { delete ui; }
 void MainWindow::on_actionExit_triggered() { QApplication::exit(0); }
 
 void MainWindow::on_actionOpen_triggered() {
-  std::unique_ptr<QFileDialog> chooseFile = std::make_unique<QFileDialog>(this);
+  auto chooseFile = std::make_unique<QFileDialog>(this);
   QString fileName;
   if (chooseFile->exec()) {
     QStringList selectedFiles = chooseFile->selectedFiles();
@@ -33,6 +35,7 @@ void MainWindow::on_actionOpen_triggered() {
     QTextStream in(&f);
     originalText = in.readAll();
     ui->textEdit->setText(originalText);
+    history.clear();
   }
 }
 
@@ -42,57 +45,47 @@ void MainWindow::on_actionNext_triggered() {
   if (originalText.length() == 0) {
     return;
   }
-  stepCounter++;
-  modifiedText = originalText;
-  for (int i = 1; i <= stepCounter; i++) {
-    modifiedText = convertText(modifiedText, i);
+  if (stepCounter == 0) {
+    modifiedText = originalText;
   }
+  history.push_back(modifiedText);
+  stepCounter++;
+  modifiedText = convertText(modifiedText);
   ui->textEdit->setText(modifiedText);
 }
 
-QString MainWindow::convertText(QString text, int step) {
+QString MainWindow::convertText(QString text) {
   QString converted = "";
-  QStringList list = text.split(" ");
-  for (QString &word : list) {
-    if (word == " " || word == "\n") {
-      continue;
-    }
-    if (word.size() >= step) {
-      if (step % 2) {
-        if (word[step / 2] != '\n') {
-          word[step / 2] = QChar(0x25AF);
-        }
-      } else {
-        if (word[word.size() - step / 2] != '\n') {
-          word[word.size() - step / 2] = QChar(0x25AF);
-        }
+  QStringList lines = text.split("\n");
+  for (QString &line : lines) {
+    QStringList words = line.split(" ");
+    for (QString &word : words) {
+      if (word == " " || word == "\n") {
+        continue;
       }
+      converted += replaceRandomChar(word, QChar(0x25AF));
+      converted += " ";
     }
-    converted += word;
-    converted += " ";
+    converted += "\n";
   }
+
   return converted;
 }
 
 void MainWindow::on_actionPrev_triggered() {
-  if (originalText.length() == 0) {
+  if (history.empty()) {
     return;
   }
-  stepCounter--;
-  if (stepCounter < 0) {
-    stepCounter = 0;
-  }
-  modifiedText = originalText;
-  for (int i = 1; i <= stepCounter; i++) {
-    modifiedText = convertText(modifiedText, i);
-  }
+  QString text = history.back();
+  modifiedText = text;
+  history.pop_back();
   ui->textEdit->setText(modifiedText);
 }
 
 void MainWindow::on_actionFirst_word_triggered() {
   modifiedText = "";
   QStringList lines = originalText.split("\n");
-  for (QString &line : lines) {
+  for (const QString &line : lines) {
     QStringList words = line.split(" ");
     modifiedText += words[0] + "\n";
   }
@@ -102,8 +95,8 @@ void MainWindow::on_actionFirst_word_triggered() {
 void MainWindow::on_actionFirst_letter_triggered() {
   modifiedText = "";
   QStringList lines = originalText.split("\n");
-  for (QString &line : lines) {
-    if (lines.size() == 0) {
+  for (const QString &line : lines) {
+    if (lines.empty() == 0) {
       continue;
     }
     QStringList words = line.split(" ");
@@ -117,5 +110,31 @@ void MainWindow::on_actionFirst_letter_triggered() {
 void MainWindow::on_actionReset_triggered() {
   stepCounter = 0;
   modifiedText = originalText;
+  history.clear();
   ui->textEdit->setText(modifiedText);
+}
+
+QString MainWindow::replaceRandomChar(QString text, QChar replaced) {
+  QString modified = text;
+  if (text.isEmpty()) {
+    return text;
+  }
+  auto countOfChars =
+      std::count_if(modified.begin(), modified.end(),
+                    [replaced](QChar c) { return c != replaced && c != '\n'; });
+  if (countOfChars == 0) {
+    return text;
+  }
+  int randomIndex = QRandomGenerator::global()->generate() % countOfChars;
+  std::for_each(modified.begin(), modified.end(),
+                [replaced, &modified, &randomIndex](QChar &c) {
+                  if (c != replaced && c != '\n') {
+                    if (randomIndex == 0) {
+                      c = replaced;
+                    }
+                    randomIndex--;
+                  }
+                });
+
+  return modified;
 }

@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <qchar.h>
+#include <qvector.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -38,7 +40,8 @@ private:
   QString originalText;
   QString modifiedText;
   int stepCounter;
-
-  QString convertText(QString text, int step);
+  QString replaceRandomChar(QString text, QChar replaced);
+  QString convertText(QString text);
+  QVector<QString> history;
 };
 #endif // MAINWINDOW_H
