@@ -92,7 +92,7 @@ void MainWindow::on_actionPrev_triggered() {
 void MainWindow::on_actionFirst_word_triggered() {
   modifiedText = "";
   QStringList lines = originalText.split("\n");
-  for (QString line : lines) {
+  for (QString &line : lines) {
     QStringList words = line.split(" ");
     modifiedText += words[0] + "\n";
   }
@@ -102,7 +102,7 @@ void MainWindow::on_actionFirst_word_triggered() {
 void MainWindow::on_actionFirst_letter_triggered() {
   modifiedText = "";
   QStringList lines = originalText.split("\n");
-  for (QString line : lines) {
+  for (QString &line : lines) {
     if (lines.size() == 0) {
       continue;
     }
