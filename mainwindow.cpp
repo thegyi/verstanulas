@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <QStringList>
 #include <QTextStream>
+#include <memory>
 #include <qapplication.h>
 #include <qfiledialog.h>
 #include <qlist.h>
@@ -20,7 +21,7 @@ MainWindow::~MainWindow() { delete ui; }
 void MainWindow::on_actionExit_triggered() { QApplication::exit(0); }
 
 void MainWindow::on_actionOpen_triggered() {
-  QFileDialog *chooseFile = new QFileDialog(this);
+  std::unique_ptr<QFileDialog> chooseFile = std::make_unique<QFileDialog>(this);
   QString fileName;
   if (chooseFile->exec()) {
     QStringList selectedFiles = chooseFile->selectedFiles();
@@ -33,7 +34,6 @@ void MainWindow::on_actionOpen_triggered() {
     originalText = in.readAll();
     ui->textEdit->setText(originalText);
   }
-  delete chooseFile;
 }
 
 void MainWindow::on_action1_triggered() {}
